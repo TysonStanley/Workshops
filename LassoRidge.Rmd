@@ -1,0 +1,505 @@
+---
+title: "Lasso and Ridge Regression"
+subtitle: "🤗"
+author: "Tyson S. Barrett"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: pres.css
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: '16:9'
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+class: inverse, center, middle
+
+# When is regression great?
+# When is it *not* so great?
+
+---
+class: center
+
+.pull-left[
+# 🤗
+
+.coral[
+### Interpretable
+### Simple
+### Flexible
+]
+]
+
+--
+
+.pull-right[
+# 😭
+
+.coral[
+### Correlated Predictors
+### Many (but sparse) predictors
+]
+]
+
+---
+class: center
+
+.pull-left[
+# 🤗
+
+.coral[
+### Interpretable
+### Simple
+### Flexible
+]
+]
+
+.pull-right[
+# ~~😭~~ 🤗
+
+.coral[
+### Correlated Predictors
+### Many (but sparse) predictors
+]
+]
+
+<br>
+<br>
+
+.huge[**Regularized Regression** can help]
+
+---
+
+# Quick Review of Regression
+
+.pull-left[
+$$
+Y = \beta_0 + \sum_j^p \beta_j X_j + e_i
+$$
+
+The estimated effect of $X_1$ is:
+$$
+\frac{\delta Y}{\delta X_1} = \beta_1
+$$
+]
+
+.pull-right[
+
+#### It finds the best fitting line to the data.
+#### It can handle categorical and continuous predictors and outcomes.
+#### It has decent predictive accuracy (there are better methods).
+]
+
+<br>
+<br>
+
+.center[.large[.coral[But it struggles when predictors are highly correlated and when predictor selection is necessary.]]]
+
+---
+# Regularized Regression
+
+.pull-left[
+### Built on conventional regression but includes a penalty:
+
+$$
+Y = \beta_0 + \sum_j^p \beta_j X_j + \lambda f(\beta_j) + e_i
+$$
+where $f(\beta_j)$ is a penalty function (i.e., if the $\beta_j$ is larger, the penalty is larger) and $\lambda$ is a tuning parameter (i.e., controls how strong the penalty is).
+]
+
+.pull-right[
+### Why is this cool??
+.coral[
+#### It minimizes the residuals and the penalty simultaneously.
+#### It gives it some magical powers.
+#### It has better predictive accuracy than conventional regression.
+#### Its usage is very similar to conventional regression.
+]]
+
+<br>
+
+.center[.large[We'll discuss all of these in regards to specific techniques]]
+
+<br>
+
+.center[.large[But first, some general steps to using regularized regressions]]
+
+---
+background-image: url(LassoRidge_Steps.pdf)
+background-size: contain
+background-repeat: no-repeat
+
+---
+class: inverse, center, middle
+
+# Popular Regularized Regressions
+
+---
+background-image: url(LassoRidge_Venn.pdf)
+background-size: contain
+background-repeat: no-repeat
+
+---
+# Lasso Regression
+
+.pull-left[
+### Built on conventional regression but includes a penalty:
+
+$$
+Y = \beta_0 + \sum_j^p \beta_j X_j + \lambda|\beta_j| + e_i
+$$
+
+The penalty is $|\beta_j|$ -- the absolute value of $\beta_j$.
+]
+
+.pull-right[
+### This penalty makes it so:
+.coral[
+#### The most important variables are selected (all other have estimates equal to zero)
+#### It can handle more predictors than variables (p > n).
+#### It has better predictive accuracy than conventional regression. This means it is less "over-fit" and more generalizable.
+#### Note: it struggles with correlated predictors.
+]]
+
+<br>
+
+.center[.large[How do we use it?]]
+
+
+---
+# How do we use it?
+
+.large[Can be done using `R` with `glmnet` or `SAS` with `proc glmselect`]
+
+<br>
+
+.large[I'll show it in `R` (at the end of the workshop, I'll walk through each aspect of the code)]
+
+<br>
+<br>
+
+.large[We'll use a fake data set about two popular TV shows--The Office and Parks and Recreation.]
+
+<br>
+
+.coral[.large[Note: We'll be ignoring some assumptions (like the fact the data are nested).]]
+
+---
+# Dataset
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(DT)
+library(tidyverse)
+set.seed(84322)
+
+## loads 'df'
+load("Data/OfficeParks.RData")
+
+df %>%
+  select(1:12) %>%
+  datatable(options = list(pageLength = 5))
+```
+
+---
+# How do we use it?
+
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 1)
+plot(fit)
+coef(fit, s = "lambda.min")
+coef(fit, s = "lambda.1se")
+```
+
+---
+# How do we use it?
+
+.pull-left[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 1)
+plot(fit)
+
+```
+
+]
+
+.pull-right[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(furniture)
+data.frame("Lambda Min" = round(as.matrix(coef(fit, s = "lambda.min")), 5), 
+           "Lambda 1SE" = round(as.matrix(coef(fit, s = "lambda.1se")), 5),
+           "Variable" = row.names(coef(fit, s = "lambda.min"))) %>%
+  setNames(c("Lambda.Min", "Lambda.1SE", "Variable")) %>%
+  select(Variable, `Lambda.Min`, `Lambda.1SE`) %>%
+  map_df(~washer(.x, 0, value = "-")) %>%
+  data.frame
+```
+]
+
+---
+background-image: url(LassoRidge_Venn.pdf)
+background-size: contain
+background-repeat: no-repeat
+
+---
+# Ridge Regression
+
+.pull-left[
+### Built on conventional regression but includes a penalty:
+
+$$
+Y = \beta_0 + \sum_j^p \beta_j X_j + \lambda(\beta_j)^2 + e_i
+$$
+
+The penalty is $(\beta_j)^2$ -- the squared value of $\beta_j$.
+]
+
+.pull-right[
+### This penalty makes it so:
+.coral[
+#### It can handle correlated predictors (even perfectly correlated)
+#### It can handle far more predictors than variables (p >> n).
+#### It has better predictive accuracy than conventional regression. This means it is less "over-fit" and more generalizable.
+#### Note: it does not actually select variables (although the estimates can get very close to zero)
+]]
+
+
+.center[.large[How do we use it?]]
+
+---
+# How do we use it?
+
+Just like Lasso but with `alpha = 0` (this will make more sense a bit later)
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 0)
+plot(fit)
+coef(fit, s = "lambda.min")
+coef(fit, s = "lambda.1se")
+```
+
+---
+# How do we use it?
+
+.pull-left[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 0)
+plot(fit)
+```
+
+]
+
+.pull-right[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(furniture)
+data.frame("Lambda Min" = round(as.matrix(coef(fit, s = "lambda.min")), 5), 
+           "Lambda 1SE" = round(as.matrix(coef(fit, s = "lambda.1se")), 5),
+           "Variable" = row.names(coef(fit, s = "lambda.min"))) %>%
+  setNames(c("Lambda.Min", "Lambda.1SE", "Variable")) %>%
+  select(Variable, `Lambda.Min`, `Lambda.1SE`) %>%
+  map_df(~washer(.x, 0, value = "-")) %>%
+  data.frame
+```
+]
+
+
+---
+background-image: url(LassoRidge_Venn.pdf)
+background-size: contain
+background-repeat: no-repeat
+
+---
+# Elastic Net
+
+.pull-left[
+#### It is the combination of Lasso and Ridge Regressions.
+
+$$
+Y = \beta_0 + \sum_j^p \beta_j X_j + \lambda\big[\alpha |\beta_j| + (1- \alpha) (\beta_j)^2\big] + e_i
+$$
+
+Note that it has a new tuning parameter, $\alpha$. Where have we seen that before?
+]
+
+.pull-right[
+### This penalty makes it so:
+.coral[
+#### It can handle correlated predictors (even perfectly correlated)
+#### It can handle far more predictors than variables (p >> n).
+#### It has better predictive accuracy than conventional regression. This means it is less "over-fit" and more generalizable.
+#### It selects the most important variables.
+#### I.e. It combines the strengths of Lasso and Ridge.
+]]
+
+
+.center[.large[Again, how do we use it?]]
+
+---
+# How do we use it?
+
+Just like Lasso but with `alpha > 0` and `alpha < 1`
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 0.5)
+plot(fit)
+coef(fit, s = "lambda.min")
+coef(fit, s = "lambda.1se")
+```
+
+---
+# How do we use it?
+
+.pull-left[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+## The R Package
+library(glmnet)
+
+## Remove Missingness (or impute)
+df <- df %>%
+  filter(complete.cases(prod1, depr1, marr, chil))
+
+## Outcome
+Y <- df$prod2
+
+## Dummy Code
+X <- df %>%
+  select(-prod2, -nam, -start_date, -last_aired, -show)
+X <- model.matrix(~ ., X)[,-1]
+
+fit <- cv.glmnet(X, Y, alpha = 0.5)
+plot(fit)
+```
+
+]
+
+.pull-right[
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+library(furniture)
+data.frame("Lambda Min" = round(as.matrix(coef(fit, s = "lambda.min")), 5), 
+           "Lambda 1SE" = round(as.matrix(coef(fit, s = "lambda.1se")), 5),
+           "Variable" = row.names(coef(fit, s = "lambda.min"))) %>%
+  setNames(c("Lambda.Min", "Lambda.1SE", "Variable")) %>%
+  select(Variable, `Lambda.Min`, `Lambda.1SE`) %>%
+  map_df(~washer(.x, 0, value = "-")) %>%
+  data.frame
+```
+]
+
+---
+# Elastic Net
+
+### How do we select the tuning parameters?
+
+With $\lambda$ it is fairly automatic with the `cv.glmnet()` function. But what about $\alpha$?
+
+1. Base it on theory.
+2. Cross-validated error just like with $\lambda$.
+3. Try a few values and see which is lowest.
+
+<br>
+
+None are amazing, but they all are good options.
+
+
+---
+# What if we want unbiased results?
+
+### Use the best model and fit an un-penalized model.
+
+This also gives us standard errors and p-values, which we often want for publications.
+
+Note that this can be problemmatic if there are still a lot of selected variables or the variables are highly correlated.
+
+
+---
+# Other Notable Topics
+.large[
+1. Generalized Additive Models (GAMs)
+1. Tree-based Methods
+  1. Random Forests
+  1. Ada Boost
+  1. Fast-and-Frugal Trees
+]
+
+
+---
+
+
+
+

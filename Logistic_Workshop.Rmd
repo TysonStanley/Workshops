@@ -1,0 +1,621 @@
+---
+title: "Logistic Regression"
+subtitle: "🤗"
+author: "Tyson S. Barrett"
+output:
+  xaringan::moon_reader:
+    lib_dir: libs
+    css: press2.css
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      ratio: '16:9'
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+```
+background-image: url(phdcomics_stressvacations.png)
+background-size: contain
+background-repeat: no-repeat
+
+---
+background-image: url(phd_10minthesis.gif)
+background-size: contain
+background-repeat: no-repeat
+
+
+---
+class: inverse
+
+# What is linear regression?
+# What is logistic regression?
+# How do we interpret it?
+# How do we use it? (in R)
+
+---
+# Linear Regression
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE, fig.align='center', fig.height=6, fig.width=15}
+library(tidyverse)
+set.seed(843)
+p1 = tibble(
+  X = rnorm(100),
+  Y = X + rnorm(100)
+) %>%
+  ggplot(aes(X, Y)) +
+    geom_point(alpha = .7, color = "black", shape = 21, fill = "dodgerblue4") +
+    geom_smooth(method = "lm", 
+                color = "coral2", 
+                fill = "dodgerblue4",
+                alpha = .2) +
+  anteo::theme_anteo_wh() +
+  labs(x = "X (continuous variable)")
+p2 = tibble(
+  X = rnorm(100),
+  Y = X + rnorm(100),
+  Z = ifelse(X > 0, 1, 0)
+) %>%
+  ggplot(aes(factor(Z), Y)) +
+    geom_jitter(alpha = .7, color = "black", shape = 21, fill = "dodgerblue4") +
+    geom_segment(x = .5, xend = 1.5, y = -.5, yend = -.5,
+                 color = "coral2", 
+                 alpha = .7) +
+    geom_segment(x = 1.5, xend = 2.5, y = .5, yend = .5,
+                 color = "coral2", 
+                 alpha = .7) +
+  anteo::theme_anteo_wh() +
+  labs(x = "Z (grouping variable)")
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+---
+# Linear Regression
+
+.pull-left[
+.center[
+# 🤗
+
+.coral[
+### Interpretable estimates
+### Simple with continuous outcomes
+### Handles most types of predictors
+]]]
+
+--
+
+.pull-right[
+.center[
+# 😭
+
+.coral[
+### What if your outcome is **not** continuous?
+]
+.large[.large[Examples]]]
+]
+
+
+
+---
+# .coral[Generalized] Linear Models
+
+.large[.large[These **generalize** the regression framework to more data situations.]]
+
+--
+
+<br>
+.large[.large[
+To do so:
+
+1. Can use a different **distribution** 📊
+
+2. Uses a **link** function ⛓
+]]
+
+---
+# Common Combinations
+
+.large[.large[
+You don't need to know everything about distributions and links to understand how to use them
+]]
+
+--
+
+```{r, echo=FALSE}
+data.frame(
+  Distribution = c("Normal", "Binomial", "Poisson", "Gamma"),
+  Link = c("Identity", "Logit, Probit", "Log", "Inverse, Log"),
+  Outcome = c("Continuous", "Binary", "Count", "High Counts"),
+  Estimates = c("Original Scale", "Log-Odds (Logit)", "Logged Units", "Inverse of Original")
+) %>%
+  DT::datatable(options = list(dom = "t"),
+                rownames = FALSE)
+```
+
+.large[We will only discuss the .nicegreen[**Binomial - Logit**] combination]
+
+<br>
+
+.large[.large[So, how does this make regression into .coral[logistic regression?]]]
+
+---
+# Great Question!
+
+### Quick Review of Regression
+
+.large[.large[
+$$
+Y = \beta_0 + \beta X + e_i
+$$
+]]
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE, fig.height=4, fig.width=12, fig.align='center'}
+library(lavaan)
+# Example 5.8 from mplus user guide:
+Data <- data.frame(
+  Y = rnorm(100),
+  X = rnorm(100),
+  M = rnorm(100)
+)
+
+# Model:
+model.Lavaan <- '
+  Y ~ X
+'
+fit <- sem(model.Lavaan, data=Data, std.lv=TRUE)
+
+# Plot path diagram:
+library(semPlot)
+semPaths(fit,
+         title=FALSE,
+         edgeLabels = c(" estimate "),
+         edge.label.cex = 2,
+         layout = "tree",
+         rotation = 2,
+         sizeMan = 12,
+         shapeMan = "rectangle",
+         border.color = "dodgerblue4",
+         border.width = 3,
+         node.width = 1.5,
+         node.height = 1,
+         mar = c(4,6,5,6))
+
+```
+
+---
+count: false
+
+# Great Question!
+
+### Quick Review of Regression
+
+.large[.large[
+$$
+Y = \beta_0 + \beta X + e_i
+$$
+]]
+
+.pull-left[
+.large[
+- best fitting line
+- both categorical and continuous predictors
+- fast computation
+]]
+
+--
+
+.pull-right[
+.large[
+- estimates in $Y$'s units
+- decent predictive accuracy
+- commonly used
+]]
+
+--
+.center[.large[.coral[To use logistic regression, we make a change to how this looks.]]]
+
+---
+class: inverse, middle, center
+
+# Logistic Regression
+
+---
+# Logisics of Logistic Regression
+
+
+.pull-left[
+.large[.large[Regression + a **logit** link: ]]
+
+$$
+logit(Y) = \beta_0 + \beta X + e_i
+$$
+
+where:
+
+$$
+logit(Y) = log(\frac{Prob(Y = 1)}{1 - Prob(Y = 1)})
+$$
+
+]
+
+--
+
+.pull-right[
+### Why is this cool?? 🥇
+
+.large[
+- The .coral[predicted values] stay between Probability = 0 and Probability = 1.
+- .nicegreen[Variances] are good
+- Its .bluer[usage] is very similar to conventional regression.
+]]
+
+--
+
+<br>
+
+.center[.large[However: Output is not as interpretable as regular regression... Why?]]
+
+---
+class: inverse, center, middle
+
+# Interpreting Logistic Regression
+
+
+---
+# Log-Odds, Probabilities, Odds Ratios, Oh My!
+
+
+.large[.large[
+- Log-Odds 😐
+
+- Odds Ratios 🙂
+  
+  .small[Odds Ratios are much better --> exponentiate the estimate]
+]]
+
+--
+
+```{r, echo=FALSE}
+data.frame(
+  Ratio = c("< 1", "Between 1 and 2", "> 1"),
+  Interpretation = c("The odds are (1 - R) % lower of Y for a one unit increase in X",
+                     "The odds are (R - 1) % higher of Y for a one unit increase in X",
+                     "The odds are R times higher of Y for a one unit increase in X")
+) %>%
+  DT::datatable(options = list(dom = "t"),
+                rownames = FALSE)
+```
+
+
+---
+# Log-Odds, Probabilities, Odds Ratios, Oh My!
+
+.large[.large[
+- Log-Odds 😐
+
+- Odds Ratios 🙂
+  
+  .small[Odds Ratios are much better --> exponentiate the estimate]
+  
+- Probabilities 😃
+  
+  .small[Probabilities easiest to interpret --> next slide]
+]]
+
+
+---
+# Probabilities in Logistic Regression
+
+.large[.large[
+Often, this is of most interest in our study
+
+- Odds ratios are also very important in most studies
+]]
+
+--
+
+## How do we get to them from our model?
+
+.large[.large[
+1. Obtain the .nicegreen[Predicted Probabilities], and/or
+
+2. Compute the .coral[Average Marginal Effects]
+]]
+
+---
+# The Probabilities
+
+.large[Let's get mathy!]
+
+$$
+logit(Y) = \beta_0 + \sum_j^p \beta_j X_j + e_i
+$$
+
+$$
+log(\frac{Prob(Y = 1)}{1 - Prob(Y = 1)}) = \beta_0 + \sum_j^p \beta_j X_j + e_i
+$$
+
+$$
+\frac{Prob(Y = 1)}{1 - Prob(Y = 1)} = e^{\beta_0 + \sum_j^p \beta_j X_j + e_i}
+$$
+
+$$
+Prob(Y = 1) = \frac{e^{\beta_0 + \sum_j^p \beta_j X_j + e_i}}{1 + e^{\beta_0 + \sum_j^p \beta_j X_j + e_i}}
+$$
+
+
+---
+# So...
+
+.pull-left[
+.large[.large[
+The Probability then:
+
+1. Depends on all the estimates and values
+
+2. Is not necessarily linear
+]]]
+
+.pull-right[
+```{r, echo=FALSE, fig.align='center', fig.width=7, fig.height=5}
+## Predicted Probabilities (example from https://stats.idre.ucla.edu/r/dae/logit-regression/)
+mydata <- read.csv("https://stats.idre.ucla.edu/stat/data/binary.csv")
+mydata$rank <- factor(mydata$rank)
+## Model
+mylogit <- glm(admit ~ gre + gpa + rank, data = mydata, family = "binomial")
+newdata2 <- with(mydata, data.frame(gre = rep(seq(from = 200, to = 800, length.out = 100),
+    4), gpa = mean(gpa), rank = factor(rep(1:4, each = 100))))
+newdata3 <- cbind(newdata2, predict(mylogit, newdata = newdata2, type = "link",
+    se = TRUE))
+newdata3 <- within(newdata3, {
+    PredictedProb <- plogis(fit)
+    LL <- plogis(fit - (1.96 * se.fit))
+    UL <- plogis(fit + (1.96 * se.fit))
+})
+ggplot(newdata3, aes(x = gre, y = PredictedProb)) + 
+  geom_ribbon(aes(ymin = LL, ymax = UL, fill = rank), 
+              alpha = 0.2) + 
+  geom_line(aes(colour = rank), size = 1) +
+  anteo::theme_anteo_wh() +
+  labs(x = "Predictor",
+       y = "Predicted Probabilities",
+       colour = "Group",
+       fill = "Group")
+```
+]
+
+
+---
+# Average Marginal Effects
+
+.large[.large[
+Each individual in the model has a .coral[**marginal effect**] for each variable
+]
+
+- To get a representative estimate for the sample, let's take the average of the marginal effects
+- Gives us the **Average Marginal Effect** for that variable
+]
+
+--
+
+.large[.large[
+This gives us an estimate in the outcome's original units (e.g., probabilities or risk)
+]
+
+- .nicegreen[A one unit increase in X is associated with a AME increase/decrease in the probability (or risk) of Y]
+]
+
+
+---
+# Reporting
+
+.large[.large[
+- Report using multiple avenues (both odds ratios and probabilities)
+
+- Uncertainty (confidence intervals, standard errors)
+]]
+
+
+
+---
+# Interpretation Summary
+
+.pull-left[
+.large[.large[
+### Outcomes
+
+1. Odds Ratios
+
+2. Probabilities
+
+  - Predicted Probabilities
+  - Average Marginal Effects
+]]]
+
+--
+
+.pull-right[
+.large[.large[
+### Reporting
+
+- Report using multiple avenues (odds ratios and probabilities)
+
+- Uncertainty (confidence intervals, standard errors)
+]]]
+
+
+
+---
+# Cool! So... how do we use it?
+
+.large[
+.large[If you are not an `R` user you can ignore the syntax .nicegreen[but pay attention to the logic of it]]
+
+.large[We'll use a fake data set about two popular TV shows--The Office and Parks and Recreation.]
+]
+
+<br>
+
+.coral[.large[Note: We'll be ignoring some assumptions (like the fact the data are nested).]]
+
+
+---
+# Dataset
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+library(DT)
+library(tidyverse)
+set.seed(84322)
+
+## loads 'df'
+load("Data/OfficeParks.RData")
+df = df %>%
+  filter(complete.cases(spor, inco, prod1, phys))
+
+df %>%
+  select(1:12) %>%
+  datatable(options = list(pageLength = 5))
+```
+
+---
+# Start with .coral[Cross-Tabulations]
+
+.large[.large[
+Check for small cells, understand missingness
+]]
+
+```{r, echo=FALSE, comment = "                        ", message=FALSE, warning=FALSE}
+df %>%
+  mutate(Sport = factor(spor, labels = c("No", "Yes"))) %>%
+  group_by(Sport) %>%
+  furniture::table1("Income" = inco,
+                    "Productivity" = prod1,
+                    "Physical-Health" = phys, 
+                    "Married" = factor(marr, labels = c("No", "Yes")),
+                    "Race" = race,
+                    output = "text2",
+                    type = "condense")
+```
+
+---
+# How do we use it?
+
+.large[
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+fit1 <- glm(spor ~ inco, data = df, family = binomial(link = "logit"))
+summary(fit1)
+```
+]
+
+---
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+fit1 <- glm(spor ~ inco, data = df, family = binomial(link = "logit"))
+summary(fit1)
+```
+
+
+---
+# Add Covariates
+
+.large[
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
+fit2 <- glm(spor ~ inco + prod1 + phys, data = df, family = binomial(link = "logit"))
+summary(fit2)
+```
+]
+
+---
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+fit2 <- glm(spor ~ inco + prod1 + phys, data = df, family = binomial(link = "logit"))
+summary(fit2)
+```
+
+---
+# Model Comparisons
+
+.pull-left[
+.large[.large[
+Productivity and Physical Health were *borderline significant*
+
+Is the second model .bluer[better] than the first?
+
+- Use the .coral[likelihood ratio test] to investigate]]]
+
+.pull-right[
+```{r}
+anova(fit1, fit2, test = "LRT")
+```
+]
+
+.footnote[Make sure models had same number of observations]
+
+---
+class: inverse, middle, center
+
+# Modeling Considerations
+
+---
+# Diagnostics
+
+.large[.large[
+- Model fit
+- Multi-collinearity
+- Prediction Accuracy
+- Residual Deviance
+]]
+
+
+.footnote[see [Diagnostics in Logistic Regression](https://courses.washington.edu/b515/l14.pdf)]
+
+---
+# Assumptions
+
+.large[.large[
+1. Independence
+
+2. No omitted influences
+
+3. Right Distribution
+
+4. Accurate Measurement
+]]
+
+
+
+
+---
+# Other Considerations
+
+.pull-left[
+### .nicegreen[Missing Values]
+
+- By default, uses listwise deletion (like regression)
+
+### .dcoral[R-Squared?]
+
+- There are approximations, but nothing quite like $R^2$
+]
+
+--
+
+.pull-right[
+### .coral[Perfect Prediction/Separation]
+
+- If any variable (or combination of variables) perfectly predicts the outcome, the model won't run
+
+### .bluer[Sample Size]
+
+- Need larger sample size than regular regression
+- The proportion of yes/no is also important
+]
+
+
+---
+class: inverse, middle, center
+
+# Questions?
+

@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1506641636756.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2867914995",
+    "id" : "C14D924B",
+    "lastKnownWriteTime" : 1506707552,
+    "last_content_update" : 1506707552014,
+    "path" : "~/Dropbox/Workshops/LassoRidge.Rmd",
+    "project_path" : "LassoRidge.Rmd",
+    "properties" : {
+        "cursorPosition" : "131,10",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1510788544896.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4253406387",
+    "id" : "49E47EF5",
+    "lastKnownWriteTime" : 1510873151,
+    "last_content_update" : 1510873151838,
+    "path" : "~/Dropbox/Workshops/MediationAnalysis.Rmd",
+    "project_path" : "MediationAnalysis.Rmd",
+    "properties" : {
+        "cursorPosition" : "577,2",
+        "scrollLine" : "556",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

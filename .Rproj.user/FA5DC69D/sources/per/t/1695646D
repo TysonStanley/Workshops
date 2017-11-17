@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1508965064684.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2699428028",
+    "id" : "1695646D",
+    "lastKnownWriteTime" : 1509120427,
+    "last_content_update" : 1509120427792,
+    "path" : "~/Dropbox/Workshops/Logistic_Workshop.Rmd",
+    "project_path" : "Logistic_Workshop.Rmd",
+    "properties" : {
+        "cursorPosition" : "19,10",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
